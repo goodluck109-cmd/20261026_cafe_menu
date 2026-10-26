@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café Lumière - 메뉴 주문 및 주방 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cafe: {
+                            50: '#faf6f0',
+                            100: '#f4ece1',
+                            200: '#e8d7c3',
+                            300: '#d7bc9f',
+                            400: '#c39d79',
+                            500: '#ab7f56',
+                            600: '#8e633f',
+                            700: '#714d33',
+                            800: '#5c3e2b',
+                            900: '#483224',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #faf6f0;
+            color: #483224;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f4ece1;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c39d79;
+            border-radius: 8px;
+        }
+
+        .menu-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .menu-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -5px rgba(113, 77, 51, 0.15);
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cafe-300 selection:text-cafe-900 pb-28 md:pb-32">
+
+    <!-- Header Section -->
+    <header class="sticky top-0 z-30 bg-cafe-50/90 backdrop-blur-md border-b border-cafe-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('customer')">
+                <div class="w-10 h-10 rounded-full bg-cafe-700 text-cafe-50 flex items-center justify-center text-xl shadow">
+                    <i class="fa-solid font-bold fa-mug-hot"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-cafe-900 tracking-tight">Café Lumière</h1>
+                    <p class="text-xs text-cafe-600">따뜻함과 감성이 쉬어가는 공간</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-2 md:space-x-3">
+                <!-- BGM Toggle Control Button -->
+                <button id="bgmToggleBtn" onclick="toggleBGM()" class="flex items-center space-x-2 px-3 py-2 rounded-full bg-cafe-100 hover:bg-cafe-200 border border-cafe-300 text-cafe-800 text-xs md:text-sm font-medium transition shadow-sm">
+                    <i id="bgmIcon" class="fa-solid fa-music text-cafe-600"></i>
+                    <span id="bgmStatusText" class="hidden sm:inline">배경음악 재생</span>
+                </button>
+
+                <!-- Kitchen / Customer View Switcher -->
+                <button id="viewSwitchBtn" onclick="toggleViewMode()" class="flex items-center space-x-2 px-4 py-2 rounded-full bg-amber-700 hover:bg-amber-800 text-white text-xs md:text-sm font-bold transition shadow-md">
+                    <i class="fa-solid fa-utensils"></i>
+                    <span id="viewSwitchText">주방 화면 보기</span>
+                    <span id="kitchenBadge" class="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 1. 손님용 화면 (CUSTOMER VIEW) -->
+    <div id="customerView" class="w-full flex-grow">
+        <main class="max-w-6xl mx-auto px-4 py-8 w-full flex-grow">
+            <!-- Ambient Hero Banner -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cafe-800 to-cafe-700 text-cafe-50 p-6 md:p-8 mb-8 shadow-md">
+                <div class="relative z-10 max-w-xl">
+                    <span class="inline-block px-3 py-1 bg-cafe-600/60 rounded-full text-xs font-light text-cafe-100 mb-2 backdrop-blur-sm">Chef's Special selection</span>
+                    <h2 class="text-2xl md:text-3xl font-bold mb-2">오늘 하루, 정성 담긴 한 잔의 여유</h2>
+                    <p class="text-xs md:text-sm text-cafe-200 leading-relaxed">갓 추출한 커피와 신선한 재료로 준비한 수제 디저트입니다. 정성을 담은 다양한 메뉴를 만나보세요.</p>
+                </div>
+                <div class="absolute -right-8 -bottom-10 opacity-10 text-9xl pointer-events-none">
+                    <i class="fa-solid fa-coffee"></i>
+                </div>
+            </div>
+
+            <!-- Category Filtering Tabs -->
+            <div class="flex space-x-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+                <button onclick="filterCategory('all', this)" class="category-btn active px-4 py-2 rounded-full bg-cafe-700 text-white text-sm font-medium shadow-sm transition whitespace-nowrap">전체 메뉴</button>
+                <button onclick="filterCategory('beverage', this)" class="category-btn px-4 py-2 rounded-full bg-cafe-100 hover:bg-cafe-200 text-cafe-800 text-sm font-medium transition whitespace-nowrap">음료 (Beverage)</button>
+                <button onclick="filterCategory('dessert', this)" class="category-btn px-4 py-2 rounded-full bg-cafe-100 hover:bg-cafe-200 text-cafe-800 text-sm font-medium transition whitespace-nowrap">디저트 & 아이스크림</button>
+            </div>
+
+            <!-- Dynamic Menu Grid Container -->
+            <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Dynamically populated via Javascript -->
+            </div>
+        </main>
+
+        <!-- Floating Bottom Order Summary Bar -->
+        <div class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-cafe-200 shadow-2xl transition-all duration-300">
+            <div class="max-w-6xl mx-auto px-4 py-3 md:py-4 flex flex-col md:flex-row items-center justify-between gap-3">
+                
+                <!-- Order Total Overview -->
+                <div class="w-full md:w-auto flex items-center justify-between md:justify-start space-x-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <div class="w-12 h-12 rounded-xl bg-cafe-100 border border-cafe-200 flex items-center justify-center text-cafe-700 text-xl">
+                                <i class="fa-solid fa-shopping-bag"></i>
+                            </div>
+                            <span id="cartCountBadge" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow">0</span>
+                        </div>
+                        <div>
+                            <div class="text-xs text-cafe-600 font-medium">총 선택 금액</div>
+                            <div class="text-xl md:text-2xl font-bold text-cafe-900"><span id="totalPrice">0</span><span class="text-base font-normal ml-0.5">원</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Trigger for Detailed Cart View -->
+                    <button onclick="openOrderModal()" class="md:hidden text-xs text-cafe-600 underline flex items-center gap-1">
+                        선택 내역 확인 <i class="fa-solid fa-chevron-up text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Horizontal Item Badges Preview (Desktop View) -->
+                <div id="orderPreviewList" class="hidden md:flex items-center space-x-2 overflow-x-auto max-w-md py-1 px-2 bg-cafe-50 rounded-lg border border-cafe-200 text-xs text-cafe-700">
+                    <span class="text-cafe-400 italic">선택된 메뉴가 없습니다.</span>
+                </div>
+
+                <!-- Complete Order CTA Button -->
+                <button id="submitOrderBtn" onclick="completeOrder()" disabled class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-cafe-300 text-cafe-500 font-bold text-base shadow-md transition-all duration-200 flex items-center justify-center space-x-2 cursor-not-allowed">
+                    <span>주문 완료하기</span>
+                    <i class="fa-solid fa-check"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 주방용 화면 (KITCHEN DISPLAY SYSTEM) -->
+    <div id="kitchenView" class="w-full flex-grow hidden">
+        <main class="max-w-6xl mx-auto px-4 py-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-cafe-300 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-cafe-900 flex items-center gap-2">
+                        <i class="fa-solid fa-kitchen-set text-amber-700"></i> 카페 주방 실시간 주문 접수대
+                    </h2>
+                    <p class="text-xs text-cafe-600 mt-1">들어온 주문을 확인하고 조리 상태를 관리하세요.</p>
+                </div>
+                <div class="flex items-center space-x-3 bg-white px-4 py-2 rounded-xl border border-cafe-200 shadow-sm">
+                    <span class="text-xs font-medium text-cafe-600">대기 중인 주문:</span>
+                    <span id="kitchenPendingCount" class="text-lg font-bold text-amber-600">0건</span>
+                </div>
+            </div>
+
+            <!-- Kitchen Orders Grid Container -->
+            <div id="kitchenOrdersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically populated kitchen order cards -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Order Details Breakdown -->
+    <div id="orderModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center pb-3 border-b border-cafe-200">
+                <h3 class="text-lg font-bold text-cafe-900 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-cafe-600"></i> 선택한 메뉴 상세
+                </h3>
+                <button onclick="closeOrderModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="modalCartItems" class="py-4 max-h-60 overflow-y-auto custom-scrollbar space-y-3">
+                <!-- Dynamically populated selected items -->
+            </div>
+
+            <div class="pt-3 border-t border-cafe-200 flex justify-between items-center font-bold text-cafe-900 text-lg">
+                <span>총 합계</span>
+                <span class="text-cafe-700" id="modalTotalPrice">0원</span>
+            </div>
+
+            <div class="mt-5 flex gap-2">
+                <button onclick="closeOrderModal()" class="w-1/2 py-2.5 rounded-xl border border-cafe-300 text-cafe-800 text-sm font-medium hover:bg-cafe-50">닫기</button>
+                <button onclick="clearCart()" class="w-1/2 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100">전체 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Order Success & Voice Message Dialog -->
+    <div id="successModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center transform transition-all">
+            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cafe-900 mb-2">주문이 완료되었습니다!</h3>
+            <p class="text-cafe-600 text-sm mb-6 leading-relaxed">
+                "주문해 주셔서 감사합니다."<br>
+                주방으로 주문이 정상 전달되었습니다.
+            </p>
+            <div class="bg-cafe-50 rounded-xl p-4 mb-6 border border-cafe-200 text-left">
+                <div class="text-xs text-cafe-500 mb-1">최종 결제 금액</div>
+                <div class="text-xl font-bold text-cafe-800" id="successTotalPrice">0원</div>
+            </div>
+            <button onclick="closeSuccessModal()" class="w-full py-3.5 rounded-xl bg-cafe-700 hover:bg-cafe-800 text-white font-bold shadow-lg transition">
+                확인 및 새로 주문하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Menu Dataset mapped to actual files in directory
+        const menuItems = [
+            { id: 'coffee', name: '아이스 커피', category: 'beverage', price: 7000, description: '깊고 풍부한 바디감의 원두를 차갑게 추출하여 상큼한 레몬 슬라이스로 깔끔함을 더한 프리미엄 클래식 음료', image: '아이스 커피.png' },
+            { id: 'milk', name: '우유', category: 'beverage', price: 3000, description: '신선한 목장에서 당일 공급받아 고소함과 부드러움이 그대로 살아있는 깔끔한 우유', image: '우유.png' },
+            { id: 'choco-icecream', name: '쵸코 아이스크림', category: 'dessert', price: 6000, description: '진한 딥 카카오의 풍미와 바삭한 초코 토핑이 한데 어우러진 수제 초콜릿 아이스크림', image: '쵸코 아이스크림.png' },
+            { id: 'vanilla-icecream', name: '바닐라 아이스크림', category: 'dessert', price: 5000, description: '천연 바닐라 빈의 깊은 향과 달콤한 카라멜 시럽, 초코 볼 토핑이 올려진 디저트', image: '바닐라 아이스크림.png' },
+            { id: 'orange-juice', name: '오렌지 쥬스', category: 'beverage', price: 5000, description: '태양을 가득 품은 오렌지를 착즙하여 상큼함과 비타민이 가득한 100% 생과일 쥬스', image: '오렌지쥬스.png' },
+            { id: 'sandwich', name: '샌드위치', category: 'dessert', price: 5500, description: '노릇한 토스트 식빵 사이에 신선한 야채, 계란, 베이컨이 가득 들어간 클럽 샌드위치', image: '샌드위치.png' },
+            { id: 'muffin', name: '머핀', category: 'dessert', price: 4500, description: '달콤한 초코칩과 쫀득한 수제 건포도가 촉촉한 빵 속에 박힌 수제 고소 머핀', image: '머핀.png' },
+            { id: 'mocha-cake', name: '모카 케이크', category: 'dessert', price: 6000, description: '은은한 커피향의 모카 크림과 시트가 겹겹이 쌓여 있으며 생딸기가 올려진 클래식 케이크', image: '모카 케이크.png' },
+            { id: 'bingsu', name: '빙수', category: 'dessert', price: 12000, description: '부드러운 우유 얼음 위에 달콤한 팥, 인절미, 제철 수박과 생과일이 푸짐하게 올려진 빙수', image: '빙수.png' }
+        ];
+
+        // Global Application State
+        let cart = {};
+        let kitchenOrders = [];
+        let orderSequence = 100;
+        let currentView = 'customer'; // 'customer' or 'kitchen'
+        let audioCtx = null;
+        let isBgmPlaying = false;
+        let bgmInterval = null;
+
+        // Audio Context lazy initialization
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Mechanical Click Sound
+        function playClickSound() {
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(900, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.04);
+
+                gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.04);
+            } catch (e) {}
+        }
+
+        // Kitchen Alert Bell Chime
+        function playKitchenBellSound() {
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.5);
+
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch (e) {}
+        }
+
+        // Ambient BGM Synthesizer
+        function startBGM() {
+            if (isBgmPlaying) return;
+            const ctx = getAudioContext();
+            isBgmPlaying = true;
+            
+            document.getElementById('bgmStatusText').innerText = '배경음악 정지';
+            document.getElementById('bgmIcon').classList.add('animate-spin');
+
+            const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 349.23, 392.00, 329.63];
+            let noteIdx = 0;
+
+            bgmInterval = setInterval(() => {
+                if (!isBgmPlaying) return;
+                
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(notes[noteIdx % notes.length], ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.025, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 1.2);
+
+                noteIdx++;
+            }, 600);
+        }
+
+        function stopBGM() {
+            isBgmPlaying = false;
+            if (bgmInterval) clearInterval(bgmInterval);
+            document.getElementById('bgmStatusText').innerText = '배경음악 재생';
+            document.getElementById('bgmIcon').classList.remove('animate-spin');
+        }
+
+        function toggleBGM() {
+            playClickSound();
+            if (isBgmPlaying) stopBGM();
+            else startBGM();
+        }
+
+        // View Mode Switcher
+        function toggleViewMode() {
+            playClickSound();
+            switchView(currentView === 'customer' ? 'kitchen' : 'customer');
+        }
+
+        function switchView(view) {
+            currentView = view;
+            const customerView = document.getElementById('customerView');
+            const kitchenView = document.getElementById('kitchenView');
+            const btnText = document.getElementById('viewSwitchText');
+
+            if (view === 'kitchen') {
+                customerView.classList.add('hidden');
+                kitchenView.classList.remove('hidden');
+                btnText.innerText = '손님 주문 화면';
+                renderKitchenOrders();
+            } else {
+                kitchenView.classList.add('hidden');
+                customerView.classList.remove('hidden');
+                btnText.innerText = '주방 화면 보기';
+            }
+        }
+
+        // Render Cards dynamically based on filter state
+        function renderMenu(items) {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = '';
+
+            items.forEach(item => {
+                const qty = cart[item.id] || 0;
+                const card = document.createElement('div');
+                card.className = `menu-card bg-white rounded-2xl overflow-hidden border border-cafe-200 shadow-sm flex flex-col justify-between ${qty > 0 ? 'ring-2 ring-cafe-500' : ''}`;
+                
+                card.innerHTML = `
+                    <div>
+                        <!-- Menu Thumbnail -->
+                        <div class="relative h-48 sm:h-52 w-full overflow-hidden bg-cafe-100">
+                            <img src="${item.image}" alt="${item.name}" 
+                                 onerror="this.onerror=null; this.src='https://placehold.co/400x300/e8d7c3/5c3e2b?text=${encodeURIComponent(item.name)}';" 
+                                 class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                            <span class="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-semibold text-cafe-800 shadow-sm">
+                                ${item.price.toLocaleString()}원
+                            </span>
+                        </div>
+
+                        <!-- Menu Details -->
+                        <div class="p-5">
+                            <h3 class="text-lg font-bold text-cafe-900 mb-1">${item.name}</h3>
+                            <p class="text-xs text-cafe-600 leading-relaxed line-clamp-3 mb-4 min-h-[3.3rem]">
+                                ${item.description}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Quantity Control Buttons -->
+                    <div class="px-5 pb-5 pt-0 mt-auto">
+                        <div class="flex items-center justify-between bg-cafe-50 p-1.5 rounded-xl border border-cafe-200">
+                            <button onclick="updateQuantity('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-white border border-cafe-200 flex items-center justify-center text-cafe-700 hover:bg-cafe-100 transition active:scale-95 shadow-sm">
+                                <i class="fa-solid fa-minus text-xs"></i>
+                            </button>
+                            <span id="qty-${item.id}" class="font-bold text-sm text-cafe-900 px-2">${qty}</span>
+                            <button onclick="updateQuantity('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-cafe-700 text-white flex items-center justify-center hover:bg-cafe-800 transition active:scale-95 shadow-sm">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Handle item addition and removal
+        function updateQuantity(itemId, delta) {
+            playClickSound();
+
+            const currentQty = cart[itemId] || 0;
+            const newQty = Math.max(0, currentQty + delta);
+
+            if (newQty === 0) {
+                delete cart[itemId];
+            } else {
+                cart[itemId] = newQty;
+            }
+
+            const qtyElement = document.getElementById(`qty-${itemId}`);
+            if (qtyElement) qtyElement.innerText = newQty;
+
+            updateCartSummary();
+            renderMenu(getActiveFilteredItems());
+        }
+
+        function getActiveFilteredItems() {
+            const activeBtn = document.querySelector('.category-btn.active');
+            if (!activeBtn) return menuItems;
+            
+            const categoryMatch = activeBtn.getAttribute('onclick').match(/'([^']+)'/);
+            const cat = categoryMatch ? categoryMatch[1] : 'all';
+            
+            return cat === 'all' ? menuItems : menuItems.filter(i => i.category === cat);
+        }
+
+        function filterCategory(category, btnElement) {
+            playClickSound();
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-cafe-700', 'text-white');
+                btn.classList.add('bg-cafe-100', 'text-cafe-800');
+            });
+
+            btnElement.classList.add('active', 'bg-cafe-700', 'text-white');
+            btnElement.classList.remove('bg-cafe-100', 'text-cafe-800');
+
+            const filtered = category === 'all' ? menuItems : menuItems.filter(item => item.category === category);
+            renderMenu(filtered);
+        }
+
+        // Recalculate totals and update all UI references
+        function updateCartSummary() {
+            let total = 0;
+            let totalCount = 0;
+            const previewContainer = document.getElementById('orderPreviewList');
+            const modalContainer = document.getElementById('modalCartItems');
+            
+            previewContainer.innerHTML = '';
+            modalContainer.innerHTML = '';
+
+            const keys = Object.keys(cart);
+
+            if (keys.length === 0) {
+                previewContainer.innerHTML = '<span class="text-cafe-400 italic">선택된 메뉴가 없습니다.</span>';
+                modalContainer.innerHTML = '<div class="text-center text-cafe-400 py-8">선택된 메뉴가 없습니다.</div>';
+            } else {
+                keys.forEach(id => {
+                    const item = menuItems.find(m => m.id === id);
+                    if (item) {
+                        const itemTotal = item.price * cart[id];
+                        total += itemTotal;
+                        totalCount += cart[id];
+
+                        // Preview Pill
+                        const pill = document.createElement('span');
+                        pill.className = 'inline-flex items-center px-2 py-1 rounded-md bg-white border border-cafe-200 text-xs font-medium text-cafe-800 whitespace-nowrap';
+                        pill.innerText = `${item.name} x${cart[id]}`;
+                        previewContainer.appendChild(pill);
+
+                        // Modal Detail Item Row
+                        const modalRow = document.createElement('div');
+                        modalRow.className = 'flex items-center justify-between p-2.5 bg-cafe-50 rounded-xl border border-cafe-100';
+                        modalRow.innerHTML = `
+                            <div class="flex items-center space-x-3">
+                                <span class="font-bold text-cafe-900 text-sm">${item.name}</span>
+                                <span class="text-xs text-cafe-500">${item.price.toLocaleString()}원</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm font-semibold text-cafe-700">x ${cart[id]}</span>
+                                <span class="text-sm font-bold text-cafe-900">${itemTotal.toLocaleString()}원</span>
+                            </div>
+                        `;
+                        modalContainer.appendChild(modalRow);
+                    }
+                });
+            }
+
+            document.getElementById('totalPrice').innerText = total.toLocaleString();
+            document.getElementById('modalTotalPrice').innerText = `${total.toLocaleString()}원`;
+            document.getElementById('cartCountBadge').innerText = totalCount;
+
+            const submitBtn = document.getElementById('submitOrderBtn');
+            if (totalCount > 0) {
+                submitBtn.disabled = false;
+                submitBtn.className = 'w-full md:w-auto px-8 py-3.5 rounded-xl bg-cafe-700 hover:bg-cafe-800 text-white font-bold text-base shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer animate-pulse-slow';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.className = 'w-full md:w-auto px-8 py-3.5 rounded-xl bg-cafe-300 text-cafe-500 font-bold text-base shadow-md transition-all duration-200 flex items-center justify-center space-x-2 cursor-not-allowed';
+            }
+        }
+
+        // Korean Speech Synthesis Helper
+        function speakOrderMessage() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance('주문해 주셔서 감사합니다.');
+                utterance.lang = 'ko-KR';
+                utterance.rate = 0.95;
+                utterance.pitch = 1.0;
+
+                const voices = window.speechSynthesis.getVoices();
+                const krVoice = voices.find(v => v.lang.includes('ko'));
+                if (krVoice) utterance.voice = krVoice;
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Complete Order Flow Trigger & Push to Kitchen System
+        function completeOrder() {
+            playClickSound();
+
+            const total = document.getElementById('totalPrice').innerText;
+            document.getElementById('successTotalPrice').innerText = `${total}원`;
+
+            // Prepare Order Object for Kitchen Display
+            const now = new Date();
+            const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            orderSequence++;
+            const newOrder = {
+                id: `ORD-${orderSequence}`,
+                orderNumber: `#${orderSequence}`,
+                time: timeString,
+                items: Object.keys(cart).map(id => {
+                    const item = menuItems.find(m => m.id === id);
+                    return {
+                        name: item.name,
+                        qty: cart[id],
+                        price: item.price
+                    };
+                }),
+                totalAmount: total,
+                status: 'pending' // 'pending' (대기), 'cooking' (조리중), 'completed' (완료)
+            };
+
+            kitchenOrders.unshift(newOrder); // Add to Kitchen list
+            updateKitchenBadge();
+            playKitchenBellSound();
+
+            // Korean TTS Announcement
+            speakOrderMessage();
+
+            // Display Success Dialog Modal
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        // Render Kitchen Display System (KDS) Cards
+        function renderKitchenOrders() {
+            const grid = document.getElementById('kitchenOrdersGrid');
+            const pendingCountEl = document.getElementById('kitchenPendingCount');
+            grid.innerHTML = '';
+
+            const pendingOrders = kitchenOrders.filter(o => o.status !== 'completed');
+            pendingCountEl.innerText = `${pendingOrders.length}건`;
+
+            if (kitchenOrders.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-cafe-200 shadow-sm">
+                        <i class="fa-solid fa-clipboard-check text-5xl text-cafe-300 mb-3"></i>
+                        <p class="text-cafe-600 font-medium">현재 새로 들어온 주문이 없습니다.</p>
+                        <p class="text-xs text-cafe-400 mt-1">손님 화면에서 주문을 진행해 보세요.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            kitchenOrders.forEach(order => {
+                const card = document.createElement('div');
+                let statusBg = 'bg-white border-cafe-300';
+                let statusBadge = '<span class="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-lg text-xs">접수 대기중</span>';
+                let actionBtn = `
+                    <button onclick="updateOrderStatus('${order.id}', 'cooking')" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-fire"></i> 주문 확인 (조리 시작)
+                    </button>
+                `;
+
+                if (order.status === 'cooking') {
+                    statusBg = 'bg-amber-50/70 border-amber-400 ring-2 ring-amber-300';
+                    statusBadge = '<span class="px-2.5 py-1 bg-amber-500 text-white font-bold rounded-lg text-xs animate-pulse">조리 진행 중</span>';
+                    actionBtn = `
+                        <button onclick="updateOrderStatus('${order.id}', 'completed')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i> 조리 완료 (제공 준비)
+                        </button>
+                    `;
+                }
+
+                let itemsHtml = order.items.map(item => `
+                    <div class="flex justify-between items-center py-1.5 border-b border-cafe-100 text-sm">
+                        <span class="font-semibold text-cafe-900">${item.name}</span>
+                        <span class="font-bold text-amber-800 bg-amber-100/60 px-2 py-0.5 rounded-md">x ${item.qty}</span>
+                    </div>
+                `).join('');
+
+                card.className = `${statusBg} rounded-2xl p-5 border shadow-md flex flex-col justify-between transition-all duration-300`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center pb-3 border-b border-cafe-200 mb-3">
+                            <div>
+                                <span class="text-xl font-extrabold text-cafe-900">${order.orderNumber}</span>
+                                <span class="text-xs text-cafe-500 ml-2"><i class="fa-regular fa-clock"></i> ${order.time}</span>
+                            </div>
+                            ${statusBadge}
+                        </div>
+
+                        <div class="space-y-1 mb-4">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-cafe-200 mt-2">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs text-cafe-600">총 결제 금액</span>
+                            <span class="font-bold text-cafe-900">${order.totalAmount}원</span>
+                        </div>
+                        ${actionBtn}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Update Kitchen Order Status
+        function updateOrderStatus(orderId, newStatus) {
+            playClickSound();
+            const order = kitchenOrders.find(o => o.id === orderId);
+            if (order) {
+                if (newStatus === 'completed') {
+                    // Remove completed order after action
+                    kitchenOrders = kitchenOrders.filter(o => o.id !== orderId);
+                } else {
+                    order.status = newStatus;
+                }
+                updateKitchenBadge();
+                renderKitchenOrders();
+            }
+        }
+
+        // Update Kitchen Notification Badge on Header
+        function updateKitchenBadge() {
+            const badge = document.getElementById('kitchenBadge');
+            const pendingCount = kitchenOrders.filter(o => o.status !== 'completed').length;
+            
+            if (pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function closeSuccessModal() {
+            playClickSound();
+            document.getElementById('successModal').classList.add('hidden');
+            clearCart();
+        }
+
+        function clearCart() {
+            cart = {};
+            updateCartSummary();
+            renderMenu(getActiveFilteredItems());
+            closeOrderModal();
+        }
+
+        function openOrderModal() {
+            playClickSound();
+            document.getElementById('orderModal').classList.remove('hidden');
+        }
+
+        function closeOrderModal() {
+            playClickSound();
+            document.getElementById('orderModal').classList.add('hidden');
+        }
+
+        // Preload Web Speech voices
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
+        // Page Initialization
+        window.onload = function() {
+            renderMenu(menuItems);
+            updateCartSummary();
+        };
+    </script>
+</body>
+</html>
